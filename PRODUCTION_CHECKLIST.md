@@ -10,11 +10,10 @@
 
 ### Environment Variables
 - [ ] Set `NODE_ENV=production`
-- [ ] Change `JWT_SECRET` to a strong random string
+- [ ] Configure the RS256 JWT key material; do not use a shared JWT secret
 - [ ] Update `DATABASE_URL` to production database
-- [ ] Update `CORS_ORIGIN` to production domain
-- [ ] Increase `BCRYPT_ROUNDS` to 12+
-- [ ] Set `LOG_LEVEL=error` for production
+- [ ] Update `CLIENT_URL` to the production frontend domain
+- [ ] Set `LOG_LEVEL` to the required operational verbosity
 
 ### Security
 - [ ] Enable HTTPS/TLS
@@ -23,6 +22,9 @@
 - [ ] Enable rate limiting
 - [ ] Set security headers (Helmet)
 - [ ] Use strong JWT expiration
+- [ ] Verify JWT verification explicitly allowlists RS256
+- [ ] Verify access and refresh tokens are httpOnly cookies only
+- [ ] Verify PostgreSQL RLS is enabled and tested for every tenant-scoped table
 
 ### Client Setup
 - [ ] Set `VITE_API_URL` to production API endpoint
@@ -40,6 +42,7 @@
 ### Monitoring & Logging
 - [ ] Set up error tracking (Sentry, etc.)
 - [ ] Configure centralized logging
+- [ ] Preserve Pino JSON fields, including `traceId`, in log collection
 - [ ] Set up health check monitoring
 - [ ] Configure alerts
 
@@ -92,4 +95,5 @@ npm run build
 - [ ] Authentication flows work
 - [ ] Error handling is working
 - [ ] Logs are being captured
+- [ ] `X-Trace-Id` is present on API responses and searchable in logs
 - [ ] Performance is acceptable

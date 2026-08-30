@@ -1,30 +1,176 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum FacilityType {
+  HOSPITAL
+  BRANCH
+  SATELLITE_CLINIC
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+}
+
+model Facility {
+  id               String       @id @default(uuid())
+  name             String
+  type             FacilityType @default(HOSPITAL)
+  parentFacilityId String?
+  parentFacility   Facility?    @relation("FacilityHierarchy", fields: [parentFacilityId], references: [id])
+  branches         Facility[]   @relation("FacilityHierarchy")
+  isActive         Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  departments      Department[]
+  users            User[]
+  auditLogs        AuditLog[]
+
+  @@index([parentFacilityId])
+}
+
+model Department {
+  id         String   @id @default(uuid())
+  facilityId String
+  facility   Facility @relation(fields: [facilityId], references: [id])
+  name       String
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  users      User[]
+  roles      UserRole[]
+
+  @@unique([facilityId, name])
+  @@index([facilityId])
 }
 
 model User {
-  id        Int     @id @default(autoincrement())
-  email     String  @unique
-  name      String
-  password  String
-  role      Role    @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String    @id @default(uuid())
+  facilityId         String?
+  facility           Facility? @relation(fields: [facilityId], references: [id])
+  departmentId       String?
+  department         Department? @relation(fields: [departmentId], references: [id])
+  username           String    @unique
+  email              String    @unique
+  phone              String    @unique
+  firstName          String
+  middleName         String?
+  surname            String
+  employmentNo       String    @unique
+  passwordHash       String
+  status             UserStatus @default(ACTIVE)
+  statusReason       String?
+  mfaEnabled         Boolean   @default(false)
+  mfaSecretEncrypted String?
+  mfaEnforcedAt      DateTime?
+  failedLoginCount   Int       @default(0)
+  lockedUntil        DateTime?
+  lastLoginAt        DateTime?
+  patientVerifiedAt  DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  roles              UserRole[]
+  auditLogs          AuditLog[]
+  sessions           Session[]
 
-  @@map("users")
+  @@index([facilityId])
 }
 
-enum Role {
-  USER
-  ADMIN
-  DOCTOR
-  NURSE
+model Role {
+  id          String          @id @default(uuid())
+  name        String          @unique
+  description String?
+  isSystem    Boolean         @default(true)
+  permissions RolePermission[]
+  users       UserRole[]
+}
+
+model Permission {
+  id       String          @id @default(uuid())
+  resource String
+  action   String
+  roles    RolePermission[]
+
+  @@unique([resource, action])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  id           String      @id @default(uuid())
+  userId       String
+  roleId       String
+  facilityId   String
+  departmentId String?
+  user         User        @relation(fields: [userId], references: [id])
+  role         Role        @relation(fields: [roleId], references: [id])
+  department   Department? @relation(fields: [departmentId], references: [id])
+  grantedAt    DateTime    @default(now())
+  grantedBy    String?
+
+  @@unique([userId, roleId, facilityId, departmentId])
+  @@index([departmentId])
+}
+
+model Session {
+  id               String    @id @default(uuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id])
+  refreshTokenHash String    @unique
+  familyId         String
+  ipAddress        String?
+  userAgent        String?
+  createdAt        DateTime  @default(now())
+  lastSeenAt       DateTime  @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  facilityId String?
+  facility   Facility? @relation(fields: [facilityId], references: [id])
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id])
+  action     String
+  resource   String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime  @default(now())
+
+  @@index([facilityId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model PatientVerification {
+  id                  String   @id @default(uuid())
+  userId              String
+  facilityId          String?
+  mrn                 String?
+  nationalId          String?
+  verificationStatus  String   @default("PENDING")
+  matchedRecordSource String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([userId])
+  @@index([mrn])
+  @@index([nationalId])
 }

@@ -1,7 +1,10 @@
-const App = () => {
-  return (
-    <div className="text-2xl text-green-500 font-bold">App</div>
-  )
-}
+import { AppProvider } from "./app/providers/app-provider";
+import { AppRouter } from "./app/router";
 
-export default App
+export default function App() {
+  return (
+    <AppProvider>
+      <AppRouter />
+    </AppProvider>
+  );
+}

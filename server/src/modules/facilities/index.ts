@@ -1,0 +1,1 @@
+export { facilitiesRouter } from "./facilities.routes.js";
